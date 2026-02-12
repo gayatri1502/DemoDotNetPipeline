@@ -1,40 +1,38 @@
+name: Build and Test
 
-trigger:
-  - main
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
-pool:
-  vmImage: 'ubuntu-latest'
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-steps:
-- task: UseDotNet@2
-  displayName: 'Install .NET SDK'
-  inputs:
-    version: '8.x'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-- task: DotNetCoreCLI@2
-  displayName: 'Restore packages'
-  inputs:
-    command: 'restore'
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
 
-- task: DotNetCoreCLI@2
-  displayName: 'Build'
-  inputs:
-    command: 'build'
-    configuration: 'Release'
+    - name: Restore
+      run: dotnet restore
 
-- task: DotNetCoreCLI@2
-  displayName: 'Run tests'
-  inputs:
-    command: 'test'
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
 
-- task: DotNetCoreCLI@2
-  displayName: 'Publish'
-  inputs:
-    command: 'publish'
-    publishWebProjects: false
-    arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
+    - name: Test
+      run: dotnet test --configuration Release --no-build
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    pathToPublish: '$(Build.ArtifactStagingDirectory)'
-    artifactName: 'drop'
+    - name: Publish
+      run: dotnet publish --configuration Release --output ./publish
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: drop
+        path: ./publish
